@@ -1,0 +1,38 @@
+---
+- name: create kube config directory
+  command: "{{ item }}"
+  with_items:
+    - mkdir -p /home/vagrant/.kube
+    - touch /home/vagrant/.kube/config
+
+- name: check if cluster is already initialized
+  command: kubectl --kubeconfig=/home/vagrant/.kube/config cluster-info
+  register: cluster_info
+  failed_when: false
+
+- name: initialize the cluster using kubeadm
+  command: kubeadm init --apiserver-advertise-address={{ node_ip }} --apiserver-cert-extra-sans={{ node_ip }} --node-name={{ node_name }} --pod-network-cidr=10.244.0.0/16
+  when: cluster_info.rc != 0
+
+- name: setup kube config for vagrant user
+  command: "{{ item }}"
+  with_items:
+    - cp /etc/kubernetes/admin.conf /home/vagrant/.kube/config
+    - chown -R vagrant:vagrant /home/vagrant/.kube
+  when: cluster_info.rc != 0
+
+- name: initialize flannel pod network
+  command: kubectl --kubeconfig=/home/vagrant/.kube/config apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+  when: cluster_info.rc != 0
+
+- name: disallow non-critical workloads on master nodes
+  command: kubectl --kubeconfig=/home/vagrant/.kube/config taint nodes {{ node_name }} node-role.kubernetes.io/master:NoSchedule-
+  when: cluster_info.rc != 0
+
+- name: generate join command
+  command: kubeadm --kubeconfig=/home/vagrant/.kube/config token create --print-join-command
+  register: join_command
+
+- name: write join-command to local file
+  local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+  become: no

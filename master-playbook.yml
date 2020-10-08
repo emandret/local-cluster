@@ -1,0 +1,6 @@
+---
+- hosts: kubemaster
+  become: yes
+  roles:
+    - common
+    - master

@@ -1,0 +1,9 @@
+---
+- name: copy join-command local file to target
+  copy:
+    src: ./join-command
+    dest: /tmp/join-command.sh
+    mode: a+rwx
+
+- name: join the node to cluster
+  command: sh /tmp/join-command.sh
