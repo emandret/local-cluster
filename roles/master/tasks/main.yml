@@ -21,11 +21,19 @@
     - chown -R vagrant:vagrant /home/vagrant/.kube
   when: cluster_info.rc != 0
 
+- name: copy the flannel configuration file
+  copy:
+    src: ./kube-flannel.yml
+    dest: /home/vagrant
+    owner: vagrant
+    group: vagrant
+    mode: 0644
+
 - name: initialize flannel pod network
-  command: kubectl --kubeconfig=/home/vagrant/.kube/config apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+  command: kubectl --kubeconfig=/home/vagrant/.kube/config apply -f kube-flannel.yml
   when: cluster_info.rc != 0
 
-- name: disallow non-critical workloads on master nodes
+- name: allow non-critical workloads on master nodes
   command: kubectl --kubeconfig=/home/vagrant/.kube/config taint nodes {{ node_name }} node-role.kubernetes.io/master:NoSchedule-
   when: cluster_info.rc != 0
 
