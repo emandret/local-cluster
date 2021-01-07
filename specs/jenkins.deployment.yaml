@@ -17,14 +17,14 @@ metadata:
   namespace: jenkins
 spec:
   capacity:
-    storage: 8Gi
+    storage: 4Gi
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local-storage
   local:
-    path: /var/jenkins_pv
+    path: "/var/jenkins_home" # this directory represents the mounted local storage device and contains the data stored in the PersistentVolume
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -73,15 +73,15 @@ spec:
           image: jenkins/jenkins:lts
           env:
             - name: JAVA_OPTS
-              value: -Djenkins.install.runSetupWizard=false # to disable the jenkins initial setup admin password
+              value: -Djenkins.install.runSetupWizard=false # to disable the Jenkins initial setup admin password
           ports:
             - name: http-port
               containerPort: 8080
             - name: jnlp-port
-              containerPort: 50000 # inbound jenkins slave agents communicate with the jenkins controller through TCP port 50000 by default
+              containerPort: 50000 # inbound Jenkins slave Pods communicate with the Jenkins master Pod through TCP port 50000 by default
           volumeMounts:
             - name: jenkins-pv-storage
-              mountPath: /var/jenkins_home
+              mountPath: "/var/jenkins_home" # value of $JENKINS_HOME in the official Docker image for Jenkins
       volumes:
         - name: jenkins-pv-storage
           persistentVolumeClaim:
@@ -95,9 +95,9 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - nodePort: 31000 # the dashboard is accessible outside the cluster at every node ip on this port
-      port: 8080 # the dashboard is accessible inside the cluster at http://jenkins-http:8080
-      targetPort: 8080 # the request will be forwarded to the correct pod on this port
+    - nodePort: 31000 # the Jenkins dashboard is accessible outside the cluster at every node's IP on this port
+      port: 8080 # the Jenkins dashboard is accessible inside the cluster at http://jenkins-http:8080
+      targetPort: 8080 # the request will be forwarded to the correct Jenkins master Pod on this port
       protocol: TCP
   selector:
     app: jenkins-master

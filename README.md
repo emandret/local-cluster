@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Kubernetes is an open-source platform for deploying and managing containers also called a container orchestrator.
+Kubernetes is an open-source container-orchestration system for deploying and managing containers.
 
 Kubernetes manages the underlying compute, network & storage infrastructure by providing core objects. Kubernetes provides four types of core objects, namely
 
@@ -88,7 +88,7 @@ A `hostPath` volume mounts a file or directory from the host node's filesystem i
 
 If you have a single-node cluster, you can use the following configuration to create a `hostPath` volume:
 
-```
+```yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -103,7 +103,7 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: "/var/jenkins_pv"
+    path: "/var/jenkins_home"
     type: DirectoryOrCreate
 ---
 apiVersion: v1
@@ -119,18 +119,25 @@ spec:
   storageClassName: manual
 ```
 
-> Note: the files or directories created on the underlying hosts are only writable by root. You either need to run your process as root in a privileged Container or modify the file permissions on the host to be able to write to a `hostPath` volume
+> Note: the files or directories created on the underlying node are only writable by root. You either need to run your process as root in a privileged Container or modify the file permissions on the host to be able to write to a `hostPath` volume
 
 While this works very well on a single-node cluster, this setup will fail for a multi-node cluster because the files or directories created are not synced across nodes. In a production cluster, the administrator would provision a network resource, such as an NFS share, an AzureFile share or an Amazon EBS volume.
 
-To avoid this issue, we use the new `local` PersistentVolume type which remembers which node was used to provision the volume. They also have a special annotation that makes any pod that uses the volume to be scheduled on the same node where the local volume is mounted.
+To avoid this issue, we use the new `local` PersistentVolume type which remembers which node was used to provision the volume. A `local` volume represents a mounted local storage device such as a disk, partition or directory. They also have a special annotation that makes any pod that uses the volume to be scheduled on the same node where the local volume is mounted.
 
 Because the Jenkins master Pod is running under UID 1000 and GID 1000, we must first create the PersistentVolume storage directory and give it the correct ownership and permissions with the following commands:
 
 ```bash
-sudo mkdir -p /var/jenkins_pv
-sudo chown -R 1000:1000 /var/jenkins_pv
-sudo chmod -R 755 /var/jenkins_pv
+sudo mkdir -p /var/jenkins_home
+sudo chown -R 1000:1000 /var/jenkins_home
+sudo chmod -R 755 /var/jenkins_home
 ```
 
 > Note: these commands should be executed inside the node corresponding to the hostname specified under `nodeAffinity` in the configuration file, in this setup it should be `kubemaster` and you can run `vagrant ssh kubemaster` to open a shell inside the node.
+
+## Sources
+
+https://devopscube.com/docker-containers-as-build-slaves-jenkins
+https://www.jenkins.io/doc/book/installing/kubernetes/#install-jenkins-with-yaml-files
+https://www.jenkins.io/doc/book/installing/kubernetes/#create-a-persistent-volume
+https://kubernetes.io/docs/concepts/storage/persistent-volumes/#types-of-persistent-volumes
