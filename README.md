@@ -133,6 +133,8 @@ sudo chown -R 1000:1000 /var/jenkins_home
 sudo chmod -R 755 /var/jenkins_home
 ```
 
+Thus, because we mount a directory from the node to a container running in a Pod, the `local` PV behaves like a bind mount in Linux and Docker.
+
 > Note: these commands should be executed inside the node corresponding to the hostname specified under `nodeAffinity` in the configuration file, in this setup it should be `kubemaster` and you can run `vagrant ssh kubemaster` to open a shell inside the node.
 
 ## Sources
