@@ -6,10 +6,13 @@ Vagrant.configure("2") do |config|
   # modified ubuntu/bionic64
   config.vm.box = "hashicorp/bionic64"
 
+  # network configuration for the host
+  config.vm.network "private_network", ip: "192.168.1.1", netmask: "255.255.255.0"
+
   # kubemaster node
   config.vm.define "kubemaster" do |kubemaster|
     kubemaster.vm.hostname = "kubemaster"
-    kubemaster.vm.network "private_network", ip: "192.168.1.2"
+    kubemaster.vm.network "private_network", ip: "192.168.1.2", netmask: "255.255.255.0"
     kubemaster.vm.provider "virtualbox" do |v|
       v.memory = 2048
       v.cpus = 2
@@ -19,7 +22,7 @@ Vagrant.configure("2") do |config|
       ansible.playbook = "master-playbook.yml"
       ansible.extra_vars = {
         node_ip: "192.168.1.2",
-        node_name: "kubemaster"
+        node_name: "kubemaster",
       }
     end
   end
@@ -28,7 +31,7 @@ Vagrant.configure("2") do |config|
   (1..3).each do |i|
     config.vm.define "worker-#{i}" do |worker|
       worker.vm.hostname = "worker-#{i}"
-      worker.vm.network "private_network", ip: "192.168.1.#{i + 2}"
+      worker.vm.network "private_network", ip: "192.168.1.#{i + 2}", netmask: "255.255.255.0"
       worker.vm.provider "virtualbox" do |v|
         v.memory = 1024
         v.cpus = 1
@@ -36,11 +39,10 @@ Vagrant.configure("2") do |config|
       worker.vm.provision "ansible" do |ansible|
         ansible.playbook = "worker-playbook.yml"
         ansible.extra_vars = {
-        node_ip: "192.168.1.#{i + 2}",
-        node_name: "worker-#{i}"
+          node_ip: "192.168.1.#{i + 2}",
+          node_name: "worker-#{i}",
         }
       end
     end
   end
-
 end
