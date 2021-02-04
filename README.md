@@ -137,9 +137,26 @@ Thus, because we mount a directory from the node to a container running in a Pod
 
 > Note: these commands should be executed inside the node corresponding to the hostname specified under `nodeAffinity` in the configuration file, in this setup it should be `kubemaster` and you can run `vagrant ssh kubemaster` to open a shell inside the node.
 
+## Updates
+
+To perform an update of the Jenkins image, you can run the following command:
+
+```bash
+kubectl rollout restart deployment/jenkins-master -n jenkins
+```
+
+Since the tag used is `latest` and `imagePullPolicy` is set to `Always` the image will be automatically pulled from the Docker hub. If you need a specific tag, you can run the following command:
+
+```bash
+kubectl set image deployment/jenkins-master jenkins-master=jenkins/jenkins:2.278 -n jenkins
+```
+
+The command notified the Deployment to use a different image for the Jenkins master pod and initiated a rolling update.
+
 ## Sources
 
 https://devopscube.com/docker-containers-as-build-slaves-jenkins
 https://www.jenkins.io/doc/book/installing/kubernetes/#install-jenkins-with-yaml-files
 https://www.jenkins.io/doc/book/installing/kubernetes/#create-a-persistent-volume
 https://kubernetes.io/docs/concepts/storage/persistent-volumes/#types-of-persistent-volumes
+https://kubernetes.io/docs/concepts/configuration/overview/#container-images
