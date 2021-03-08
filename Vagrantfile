@@ -6,6 +6,9 @@ Vagrant.configure("2") do |config|
   # modified ubuntu/bionic64
   config.vm.box = "hashicorp/bionic64"
 
+  # shared folder between nodes
+  config.vm.synced_folder "/home/ema/ts_framework", "/nfs/shared", type: "nfs"
+
   # kubemaster node
   config.vm.define "kubemaster" do |kubemaster|
     kubemaster.vm.hostname = "kubemaster"
@@ -16,10 +19,10 @@ Vagrant.configure("2") do |config|
     end
     # note: the default inventory file is located at .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory
     kubemaster.vm.provision "ansible" do |ansible|
-      ansible.playbook = "master-playbook.yml"
+      ansible.playbook = "./master-playbook.yml"
       ansible.extra_vars = {
         node_ip: "192.168.1.2",
-        node_name: "kubemaster"
+        node_name: "kubemaster",
       }
     end
   end
@@ -34,13 +37,12 @@ Vagrant.configure("2") do |config|
         v.cpus = 1
       end
       worker.vm.provision "ansible" do |ansible|
-        ansible.playbook = "worker-playbook.yml"
+        ansible.playbook = "./worker-playbook.yml"
         ansible.extra_vars = {
-        node_ip: "192.168.1.#{i + 2}",
-        node_name: "worker-#{i}"
+          node_ip: "192.168.1.#{i + 2}",
+          node_name: "worker-#{i}",
         }
       end
     end
   end
-
 end

@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: slave
+    jenkins/label: jenkins-slave
+  name: jenkins-slave
+spec:
+  hostNetwork: false # do not share the underlying Node network namespace so that these containers run in their own namespace instead
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                  - kubemaster # forbid the slave Pods from running workloads on kubemaster
+  restartPolicy: Never
+  containers:
+    - name: ansible-runner
+      image: emandret/ansible-alpine
+      imagePullPolicy: IfNotPresent
+      command: [sleep]
+      args: ["9999999"]
+      tty: false
+      resources:
+        limits:
+          memory: 512Mi
+          cpu: "0.1"
+        requests:
+          memory: 256Mi
+          cpu: "0.1"
