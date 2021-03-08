@@ -1,9 +1,9 @@
----
-- name: copy join-command local file to target
+- name: Copy join-command local file to remote host
   copy:
-    src: ./join-command
+    src: join-command
     dest: /tmp/join-command.sh
     mode: a+rwx
+    remote_src: no
 
-- name: join the node to cluster
+- name: Initialize the worker node and join it to the cluster
   command: sh /tmp/join-command.sh

@@ -1,5 +1,4 @@
----
-- name: install packages that allow apt to be used over https
+- name: Install packages that allow apt to be used over https
   apt:
     name: "{{ packages }}"
     state: present
@@ -12,17 +11,17 @@
       - gnupg-agent
       - software-properties-common
 
-- name: add an apt signing key for docker
+- name: Add an apt signing key for Docker
   apt_key:
     url: https://download.docker.com/linux/ubuntu/gpg
     state: present
 
-- name: add apt repository for stable version
+- name: Add apt repository for stable version of Docker
   apt_repository:
     repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
     state: present
 
-- name: install docker and its dependencies
+- name: Install Docker and required dependencies
   apt:
     name: "{{ packages }}"
     state: present
@@ -35,26 +34,32 @@
     notify:
       - docker status
 
-- name: copy daemon.json local docker config to target
+- name: Copy local Docker daemon configuration to remote host
   copy:
-    src: ./daemon.json
+    src: daemon.json
     dest: /etc/docker/daemon.json
+    remote_src: no
   become: yes
 
-- name: restart the docker daemon
+- name: Restart the Docker daemon
   service:
     name: docker
-    daemon_reload: yes
     state: restarted
+    daemon_reload: yes
 
-- name: add vagrant user to docker group
+- name: Create docker group with GID 1001
+  group:
+    name: docker
+    gid: 1001
+
+- name: Add vagrant user to docker group
   user:
     name: vagrant
     groups:
       - docker
     append: yes
 
-- name: remove swapfile from /etc/fstab
+- name: Remove swapfile mount-point from /etc/fstab
   mount:
     name: "{{ item }}"
     fstype: swap
@@ -63,22 +68,22 @@
     - swap
     - none
 
-- name: disable swap
+- name: Disable swap
   command: swapoff -a
   when: ansible_swaptotal_mb > 0
 
-- name: add an apt signing key for kubernetes
+- name: Add an apt signing key for Kubernetes
   apt_key:
     url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
     state: present
 
-- name: add apt repository for kubernetes main version
+- name: Add apt repository for Kubernetes main version
   apt_repository:
     repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
     state: present
     filename: kubernetes.list
 
-- name: install kubernetes binaries
+- name: Install Kubernetes required binaries
   apt:
     name: "{{ packages }}"
     state: present
@@ -89,13 +94,13 @@
       - kubeadm
       - kubectl
 
-- name: set the host-only static ip address as the node ip address
+- name: Set the Kubernetes node IP to match the host-only static IP
   lineinfile:
     path: /etc/default/kubelet
     line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
     create: yes
 
-- name: restart the kubelet daemon
+- name: Restart the kubelet daemon
   service:
     name: kubelet
     daemon_reload: yes

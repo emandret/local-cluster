@@ -1,0 +1,34 @@
+- name: Create jenkins group with GID 1002
+  group:
+    name: jenkins
+    gid: 1002
+
+- name: Create jenkins user with UID 1002
+  user:
+    name: jenkins
+    group: jenkins
+    password: "!" # login is disabled for this account
+    create_home: yes
+    uid: 1002
+
+- name: Create Jenkins PersistentVolume local path
+  file:
+    path: "{{ jenkins_volume }}"
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: 0755
+
+- name: Copy local Kubernetes resources files
+  copy:
+    src: k8s
+    dest: /home/vagrant
+    mode: 0644
+    remote_src: no
+
+- name: Spin up the Jenkins master Pod and associated resources
+  command: kubectl apply -f "{{ item }}"
+  with_items:
+    - ./k8s/jenkins-namespace.yml
+    - ./k8s/jenkins-service-account.yml
+    - ./k8s/jenkins-deployment.yml

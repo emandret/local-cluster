@@ -1,0 +1,22 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Leave the current cluster
+      command: kubeadm reset --force --kubeconfig "{{ kube_config }}"
+
+    - name: Remove configuration files
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - "{{ kube_config }}"
+        - /etc/cni/net.d
+
+    - name: Flush iptables chains
+      command: iptables -t '{{ item }}' -F
+      with_items:
+        - filter
+        - nat
+        - mangle
+        - raw
+        - security

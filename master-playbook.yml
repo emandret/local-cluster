@@ -1,6 +1,8 @@
----
 - hosts: kubemaster
   become: yes
   roles:
     - common
     - master
+    - jenkins
+  environment:
+    KUBECONFIG: "{{ kube_config }}"

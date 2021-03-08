@@ -1,0 +1,2 @@
+# For Jenkins
+jenkins_volume: /var/jenkins_home

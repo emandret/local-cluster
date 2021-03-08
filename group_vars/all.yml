@@ -1,0 +1,2 @@
+# For Kubernetes
+kube_config: /home/vagrant/.kube/config

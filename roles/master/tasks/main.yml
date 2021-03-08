@@ -1,46 +1,64 @@
----
-- name: create kube config directory
-  command: "{{ item }}"
-  with_items:
-    - mkdir -p /home/vagrant/.kube
-    - touch /home/vagrant/.kube/config
+- name: Create the .kube configuration folder
+  file:
+    path: "{{ kube_config|dirname }}"
+    state: directory
+    mode: 0755
 
-- name: check if cluster is already initialized
-  command: kubectl --kubeconfig=/home/vagrant/.kube/config cluster-info
+- name: Create an empty configuration file
+  file:
+    path: "{{ kube_config }}"
+    state: touch
+    mode: 0644
+
+- name: Check if cluster is already provisioned
+  command: kubectl cluster-info
   register: cluster_info
   failed_when: false
 
-- name: initialize the cluster using kubeadm
-  command: kubeadm init --apiserver-advertise-address={{ node_ip }} --apiserver-cert-extra-sans={{ node_ip }} --node-name={{ node_name }} --pod-network-cidr=10.244.0.0/16
+- name: Debug cluster_info
+  debug:
+    var: cluster_info
+
+- name: Provision the cluster from scratch
   when: cluster_info.rc != 0
+  block:
+    - name: Initialize the master node
+      command: >-
+        kubeadm init
+          --apiserver-advertise-address={{ node_ip }}
+          --apiserver-cert-extra-sans={{ node_ip }}
+          --node-name={{ node_name }}
+          --pod-network-cidr=10.244.0.0/16
 
-- name: setup kube config for vagrant user
-  command: "{{ item }}"
-  with_items:
-    - cp /etc/kubernetes/admin.conf /home/vagrant/.kube/config
-    - chown -R vagrant:vagrant /home/vagrant/.kube
-  when: cluster_info.rc != 0
+    - name: Copy default configuration
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ kube_config }}"
+        owner: vagrant
+        group: vagrant
+        mode: 0644
+        remote_src: yes
 
-- name: copy the flannel configuration file
-  copy:
-    src: ./kube-flannel.yml
-    dest: /home/vagrant
-    owner: vagrant
-    group: vagrant
-    mode: 0644
+    - name: Copy local flannel configuration to remote host
+      copy:
+        src: kube-flannel.yml
+        dest: /home/vagrant
+        mode: 0644
+        remote_src: no
 
-- name: initialize flannel pod network
-  command: kubectl --kubeconfig=/home/vagrant/.kube/config apply -f kube-flannel.yml
-  when: cluster_info.rc != 0
+    - name: Initialize flannel overlay network
+      command: kubectl apply -f ./kube-flannel.yml
 
-- name: allow non-critical workloads on master nodes
-  command: kubectl --kubeconfig=/home/vagrant/.kube/config taint nodes {{ node_name }} node-role.kubernetes.io/master:NoSchedule-
-  when: cluster_info.rc != 0
+    - name: Allow non-critical workloads on master nodes
+      command: kubectl taint nodes {{ node_name }} node-role.kubernetes.io/master:NoSchedule-
 
-- name: generate join command
-  command: kubeadm --kubeconfig=/home/vagrant/.kube/config token create --print-join-command
-  register: join_command
+    - name: Get join-command
+      command: kubeadm token create --print-join-command
+      register: join_command
 
-- name: write join-command to local file
-  local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
-  become: no
+    - name: Write join-command to local file
+      copy:
+        content: "{{ join_command.stdout_lines[0] }}"
+        dest: join-command
+      become: no
+      delegate_to: localhost
